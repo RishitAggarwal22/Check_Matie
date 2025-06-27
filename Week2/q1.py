@@ -51,6 +51,7 @@ class History:
         Get player whose turn it is at the current history/board
         :return: 'x' or 'o' or None
         """
+        # First move by 'x' then 'o'
         total_num_moves = len(self.history)
         if total_num_moves < 9:
             if total_num_moves % 2 == 0:
@@ -76,31 +77,81 @@ class History:
     def is_win(self):
         # check if the board position is a win for either players
         # Feel free to implement this in anyway if needed
-        pass
+        board = self.board
+        if board[0] == board[1] and board[2] == board[1]:
+            if board[0] != '0':
+                return board[0] 
+        if board[3] == board[4] and board[5] == board[4]:
+            if board[3] != '0':
+                return board[3] 
+        if board[6] == board[7] and board[8] == board[7]:
+            if board[6] != '0':
+                return board[6] 
+        if board[0] == board[3] and board[6] == board[3]:
+            if board[0] != '0':
+                return board[0] 
+        if board[1] == board[4] and board[7] == board[4]:
+            if board[1] != '0':
+                return board[1] 
+        if board[2] == board[5] and board[8] == board[5]:
+            if board[2] != '0':
+                return board[2] 
+        if board[0] == board[4] and board[8] == board[4]:
+            if board[0] != '0':
+                return board[0] 
+        if board[2] == board[4] and board[6] == board[4]:
+            if board[2] != '0':
+                return board[2] 
+        return False
 
     def is_draw(self):
         # check if the board position is a draw
         # Feel free to implement this in anyway if needed
-        pass
+        if '0' not in self.board and not self.is_win():
+            return True
+        return False
 
     def get_valid_actions(self):
         # get the empty squares from the board
         # Feel free to implement this in anyway if needed
-        pass
+        valid_actions = []
+        for i in range(len(self.board)):
+            if self.board[i] == '0':
+                valid_actions.append(i)
+        return valid_actions
 
     def is_terminal_history(self):
         # check if the history is a terminal history
         # Feel free to implement this in anyway if needed
-        pass
+        if self.is_win() or self.is_draw():
+            return True
+        return False
 
     def get_utility_given_terminal_history(self):
         # Feel free to implement this in anyway if needed
-        pass
+        if self.is_win() == 'x':
+            return 1
+        elif self.is_win() == 'o':
+            return -1
+        elif self.is_draw():
+            return 0.0
 
+    """
+    what is deepcopy?
+    A deepcopy creates a new object that is a copy of the original object, including all nested objects.
+    """
     def update_history(self, action):
         # In case you need to create a deepcopy and update the history obj to get the next history object.
         # Feel free to implement this in anyway if needed
-        pass
+        new_history = copy.deepcopy(self.history)
+        new_history.append(action)
+        return new_history
+    
+    def stringify(self):
+        """ Stringify the history object for easy comparison and storage in dictionaries.
+        :return: str representation of the history
+        """
+        return ''.join(map(str, self.history))
 
 
 def backward_induction(history_obj):
@@ -122,9 +173,40 @@ def backward_induction(history_obj):
     # actions. But since tictactoe is a PIEFG, there always exists an optimal deterministic strategy (SPNE). So your
     # policy will be something like this {"0": 1, "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0} where
     # "0" was the one of the best actions for the current player/history.
-    return -2
-    # TODO implement
+    
+    if history_obj.is_terminal_history():
+        return history_obj.get_utility_given_terminal_history()
+    
+    player = history_obj.player
+    history = history_obj
+    default = {"0": 0, "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0}
 
+    if player == 'x':
+        utility = -math.inf
+        best_move = None
+        for move in history_obj.get_valid_actions():
+            history = History(history_obj.update_history(move))
+            if backward_induction(history) > utility:
+                utility = backward_induction(history)
+                best_move = move
+        strategy_dict_x[history_obj.stringify()] = default
+        strategy_dict_x[history_obj.stringify()][str(best_move)] = 1
+        return utility
+    
+    if player == 'o':
+        utility = math.inf
+        best_move = None
+        for move in history_obj.get_valid_actions():
+            history = History(history_obj.update_history(move))
+            if backward_induction(history) < utility:
+                utility = backward_induction(history)
+                best_move = move
+        strategy_dict_o[history_obj.stringify()] = default
+        strategy_dict_o[history_obj.stringify()][str(best_move)] = 1
+        return utility
+        
+    # If the player is not 'x' or 'o', return -2 to indicate an error
+    return -2
 
 def solve_tictactoe():
     backward_induction(History())
